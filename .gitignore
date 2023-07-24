@@ -44,3 +44,9 @@ enc_temp_folder/
 *.deb
 *.rpm
 *.msi
+
+*.vsidx
+
+x64/Debug/
+
+project/x64/Debug/

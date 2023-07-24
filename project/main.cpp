@@ -3,26 +3,17 @@
 #include "linker.hpp"
 #include <optional>
 #include <iostream>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/core.hpp>
-#include <opencv2/imgproc.hpp>
-
-inline constexpr int CONNECTIVITY_RADIUS_GRANULARITY = 10;
-inline constexpr int DEFAULT_CONNECTIVITY_RADIUS = 100;
-inline constexpr int MIN_CONNECTIVITY_RADIUS = 10;
-inline constexpr int MAX_CONNECTIVITY_RADIUS = 1000;
-
-// a struct for representing optional user input
-// for a certain frame
-struct UserInput
-{
-    std::optional<cv::Point2d> mouse_press_pos;
-    std::optional<int>         mouse_wheel_delta;
-};
+#include "Common/CommonDefs.hpp"
+#include "Classes/Beacon/Beacon.hpp"
+#include "Classes/Canvas/Board.hpp"
 
 void Run()
 { 
-    UserInput lastUserInput{};
+    Common::CommonDefs::UserInput lastUserInput{};
+    BeaconApp::Board board;
+    bool updateCanvas = false;
+    std::vector<int> indexesToDraw;
+    indexesToDraw.clear();
     
     const auto GREEN = cv::Scalar(0, 255, 0);
     const auto RED = cv::Scalar(0, 0, 255);
@@ -30,25 +21,24 @@ void Run()
     const auto CANVAS_WIDTH = 1920;
     const auto CANVAS_HEIGHT = 1024;
 
-    auto currentConnectivityRadius = DEFAULT_CONNECTIVITY_RADIUS;
-
     cv::namedWindow("canvas", 1);
     cv::setMouseCallback("canvas", [](int event, int x, int y, int flags, void* userdata)
-    {
-        
+    {     
         if (event == cv::EVENT_LBUTTONDOWN)
         {
-            auto userData = static_cast<UserInput*>(userdata);
+            auto userData = static_cast<Common::CommonDefs::UserInput*>(userdata);
             userData->mouse_press_pos = cv::Point2d{ static_cast<double>(x), static_cast<double>(y) };
         }
         //std::cout << "event" << event << std::endl;
         if (event == cv::EVENT_MOUSEWHEEL)
         {
-            auto userData = static_cast<UserInput*>(userdata);
+            auto userData = static_cast<Common::CommonDefs::UserInput*>(userdata);
 
             userData->mouse_wheel_delta = cv::getMouseWheelDelta(flags);
         }
     }, &lastUserInput);
+
+
 
     cv::Mat canvas = cv::Mat::zeros(CANVAS_HEIGHT, CANVAS_WIDTH, CV_8UC3);
 
@@ -60,46 +50,56 @@ void Run()
         canvas.setTo(0);
 
         // TODO: handle user input
-        if (lastUserInput.mouse_press_pos)
+        if (lastUserInput.mouse_press_pos.has_value())
         {
-            lastPoint = *lastUserInput.mouse_press_pos;
-            lastUserInput.mouse_press_pos.reset();
-        }
-        if (lastUserInput.mouse_wheel_delta)
-        {
-            static constexpr int MOUSE_WHEEL_DEFAULT_GRANULARITY = 120; 
-            auto radiusDelta = (*lastUserInput.mouse_wheel_delta / MOUSE_WHEEL_DEFAULT_GRANULARITY) * CONNECTIVITY_RADIUS_GRANULARITY;
-            
-            currentConnectivityRadius = std::clamp(
-                currentConnectivityRadius + radiusDelta,
-                MIN_CONNECTIVITY_RADIUS, 
-                MAX_CONNECTIVITY_RADIUS
-            );
+            if (board.addBeaconToBoard(lastUserInput.mouse_press_pos.value()) == true)
+                indexesToDraw = board.getShortesPath();
 
+            lastUserInput.mouse_press_pos.reset();
+            updateCanvas = true;
+        }
+        if (lastUserInput.mouse_wheel_delta.has_value())
+        {          
+            board.UpdateConectivityRadiusByDelta(lastUserInput.mouse_wheel_delta.value());
             lastUserInput.mouse_wheel_delta.reset();
         }
 
         cv::putText(canvas, "press 'c' to clear, 't' to toggle connectivity radius, escape to exit", cv::Point(20, 50), cv::FONT_HERSHEY_SIMPLEX, 1.3, GREEN, 2);
-        cv::putText(canvas, cv::format("current connectivity radius = %d", currentConnectivityRadius), cv::Point(20, 100), cv::FONT_HERSHEY_SIMPLEX, 1.3, GREEN, 2);
+        cv::putText(canvas, cv::format("current connectivity radius = %d", board.GetConnectivityRadius()), cv::Point(20, 100), cv::FONT_HERSHEY_SIMPLEX, 1.3, GREEN, 2);
 
         // TODO draw shortest path
 
-        if (lastPoint)
-        {
-            cv::ellipse(canvas,
-                cv::Point((int)lastPoint->x, (int)lastPoint->y),
-                cv::Size((int)5, (int)5), 0.0,
-                0, 360,
-                GREEN, -1
-            );
 
-            cv::ellipse(canvas,
-                cv::Point((int)lastPoint->x, (int)lastPoint->y),
-                cv::Size((int)currentConnectivityRadius, (int)currentConnectivityRadius), 0.0,
-                0, 360,
-                BLUE, 3
-            );
-         
+        if (updateCanvas)
+        {
+            auto beaconsToDraw = board.getBeaconsVec();
+
+            for (size_t i = 0; i < beaconsToDraw.size(); ++i) 
+            {
+
+                cv::ellipse(canvas,
+                    cv::Point((int)beaconsToDraw[i].getCenter().x, (int)beaconsToDraw[i].getCenter().y),
+                    cv::Size((int)5, (int)5), 0.0,
+                    0, 360,
+                    GREEN, -1
+                );
+
+                cv::ellipse(canvas,
+                    cv::Point((int)beaconsToDraw[i].getCenter().x, (int)beaconsToDraw[i].getCenter().y),
+                    cv::Size((int)beaconsToDraw[i].getRadius(), (int)beaconsToDraw[i].getRadius()), 0.0,
+                    0, 360,
+                    BLUE, 3
+                );
+            }
+
+            for (size_t i = 0; i < indexesToDraw.size() - 1; ++i) {
+                int startIdx = indexesToDraw[i];
+                int endIdx = indexesToDraw[i + 1];
+                QPoint lineStart(circles[startIdx].getCenter().getX(), circles[startIdx].getCenter().getY());
+                QPoint lineEnd(circles[endIdx].getCenter().getX(), circles[endIdx].getCenter().getY());
+
+                shortestPathLines.push_back({ lineStart, lineEnd });
+            }
         }
 
         cv::imshow("canvas", canvas);

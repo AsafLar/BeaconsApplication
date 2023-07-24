@@ -2,8 +2,43 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Classes\Graph\Graph.cpp">
+      <Filter>Classes\Graph</Filter>
+    </ClCompile>
+    <ClCompile Include="Classes\Canvas\Board.cpp">
+      <Filter>Classes\Canvas</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="linker.hpp" />
+    <ClInclude Include="Classes\Graph\Graph.hpp">
+      <Filter>Classes\Graph</Filter>
+    </ClInclude>
+    <ClInclude Include="Classes\Circle\Beacon.hpp">
+      <Filter>Classes\Beacon</Filter>
+    </ClInclude>
+    <ClInclude Include="Classes\Canvas\Board.hpp">
+      <Filter>Classes\Canvas</Filter>
+    </ClInclude>
+    <ClInclude Include="Common\CommonDefs.hpp">
+      <Filter>Common</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Classes">
+      <UniqueIdentifier>{2f9fb943-b1c1-4d30-bde4-8ce0149e2f2f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Classes\Graph">
+      <UniqueIdentifier>{19b78b26-868f-4aa5-918f-ea9fbadec476}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Classes\Canvas">
+      <UniqueIdentifier>{ff0543f6-51d0-446b-8579-b2f780d89166}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Classes\Beacon">
+      <UniqueIdentifier>{34dc1282-22d2-4c1e-a02a-d0f54e2b5065}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common">
+      <UniqueIdentifier>{02dc4fac-6ef1-4bc6-8d15-75f02eed33eb}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
 </Project>
